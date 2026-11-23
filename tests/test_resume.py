@@ -34,3 +34,23 @@ def test_resume_is_exact(tmp_path):
     for d in ("ra", "rb"):
         assert len(open(tmp_path / d / "runs.csv").read().strip().splitlines()) == 2
         assert len(open(tmp_path / d / "logs" / "pt_tiny.csv").read().strip().splitlines()) == 7
+
+
+def test_rng_state_survives_device_move():
+    """Regression (found on a Kaggle T4): loading a checkpoint with map_location=cuda moved the
+    saved RNG ByteTensor off the CPU and set_rng_state raised TypeError. Simulate the move by
+    giving set_rng_state a non-CPU-contiguous/converted tensor: it must call .cpu() itself."""
+    from mae.utils import rng_state, set_rng_state
+
+    class Moved:                      # stands in for a CUDA tensor on a CPU-only machine
+        def __init__(self, t):
+            self.t = t
+
+        def cpu(self):
+            return self.t
+
+    s = rng_state()
+    a = torch.rand(3)
+    s["torch"] = Moved(s["torch"])
+    set_rng_state(s)
+    assert torch.equal(torch.rand(3), a)

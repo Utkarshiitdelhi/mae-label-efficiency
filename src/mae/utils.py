@@ -79,11 +79,13 @@ def rng_state():
 
 
 def set_rng_state(s):
+    """RNG states must be CPU ByteTensors; torch.load(map_location="cuda") moves them to the
+    GPU, so bring them back first."""
     random.setstate(s["python"])
     np.random.set_state(s["numpy"])
-    torch.set_rng_state(s["torch"])
+    torch.set_rng_state(s["torch"].cpu())
     if "cuda" in s and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(s["cuda"])
+        torch.cuda.set_rng_state_all([t.cpu() for t in s["cuda"]])
 
 
 def save_checkpoint(path, model, optimizer, scaler, epoch, step, extra=None):
