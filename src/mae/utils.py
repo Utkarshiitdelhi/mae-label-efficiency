@@ -31,12 +31,26 @@ def git_commit() -> str:
         return "nogit"
 
 
+def _num(v):
+    """PyYAML reads '1e-3' (no decimal point) as a string; turn such strings into floats."""
+    if isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            return v
+    if isinstance(v, list):
+        return [_num(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _num(x) for k, x in v.items()}
+    return v
+
+
 def load_config(path: str, overrides=None) -> dict:
     with open(path) as f:
-        cfg = yaml.safe_load(f)
+        cfg = _num(yaml.safe_load(f))
     for item in overrides or []:                 # "key=value", value parsed as YAML
         k, v = item.split("=", 1)
-        cfg[k] = yaml.safe_load(v)
+        cfg[k] = _num(yaml.safe_load(v))
     cfg["config_name"] = os.path.splitext(os.path.basename(path))[0]
     return cfg
 

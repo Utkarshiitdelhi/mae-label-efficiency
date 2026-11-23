@@ -78,7 +78,8 @@ for block in "$@"; do
   echo "================ $block ================"
   case $block in
     test)
-      python -m pytest -q tests
+      python -c "import sys; sys.path.insert(0, 'src'); from mae.data import load_cifar; load_cifar('$DATA', True); load_cifar('$DATA', False)"
+      MAE_DATA="$DATA" python -m pytest -q tests
       bash scripts/smoke_test.sh "$DATA" ;;
     timing)
       python scripts/pretrain.py --config configs/pretrain_m75.yaml --data "$DATA" --results "$RESULTS/timing" \

@@ -27,3 +27,14 @@ def test_one_percent_seeds_differ():
         with open(os.path.join(SPLITS, f"frac1_seed{seed}.json")) as f:
             sets.append(frozenset(json.load(f)["train"]))
     assert len(set(sets)) == 3
+
+
+def test_config_numbers_parse_as_floats(tmp_path):
+    """`--set lr=1e-3` must give a float (PyYAML alone returns the string '1e-3')."""
+    from mae.utils import load_config
+    cfg = load_config(os.path.join(os.path.dirname(__file__), "..", "configs", "pretrain_m75.yaml"),
+                      ["lr=1e-3", "run_name=m75_lr1e-3", "epochs=20"])
+    assert cfg["lr"] == 1e-3 and isinstance(cfg["lr"], float)
+    assert cfg["run_name"] == "m75_lr1e-3" and cfg["epochs"] == 20 and cfg["base_lr"] == 1.5e-4
+    ft = load_config(os.path.join(os.path.dirname(__file__), "..", "configs", "finetune.yaml"))
+    assert ft["lr_sweep"] == [5e-4, 1e-3, 2e-3] and ft["budgets"][1]["steps"] == 3000

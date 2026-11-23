@@ -50,22 +50,17 @@ def test_normalized_targets_per_patch():
 
 
 def _natural_batch(n=64):
-    """64 CIFAR training images if the dataset is on disk, else smooth synthetic images
-    (pure per-pixel noise has no structure and is a poor stand-in for photos)."""
+    """64 real CIFAR training images (env MAE_DATA or ./data). Skips if the dataset is absent:
+    per-pixel noise has no structure and is not a meaningful stand-in for photos."""
     import os
-    import numpy as np
-    from mae.data import CIFAR_MEAN, CIFAR_STD
+    from mae.data import CIFAR_MEAN, CIFAR_STD, cifar_arrays
     root = os.environ.get("MAE_DATA", os.path.join(os.path.dirname(__file__), "..", "data"))
     try:
-        from mae.data import cifar_arrays
         x = torch.from_numpy(cifar_arrays(root, True, download=False)[0][:n]).permute(0, 3, 1, 2)
-        x = x.float() / 255
     except Exception:
-        g = torch.Generator().manual_seed(0)
-        x = torch.nn.functional.interpolate(torch.rand(n, 3, 8, 8, generator=g), size=32,
-                                            mode="bilinear", align_corners=False)
+        pytest.skip(f"CIFAR-10 not found under {root}; set MAE_DATA or run make_splits first")
     m, s = torch.tensor(CIFAR_MEAN).view(1, 3, 1, 1), torch.tensor(CIFAR_STD).view(1, 3, 1, 1)
-    return (x - m) / s
+    return (x.float() / 255 - m) / s
 
 
 @pytest.mark.slow

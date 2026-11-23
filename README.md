@@ -65,7 +65,7 @@ Everything runs from scripts. The Kaggle notebooks only fetch the code and call 
 ```bash
 pip install -r requirements.txt
 python scripts/make_splits.py --data ./data      # only if you want to regenerate; splits/ is committed
-python -m pytest -q tests                        # 25 tests; the overfit test is ~3 min on CPU
+MAE_DATA=./data python -m pytest -q tests       # 26 tests; one-batch overfit ~3 min on CPU (skips without CIFAR)
 bash scripts/smoke_test.sh ./data                # whole pipeline in miniature (numbers meaningless)
 bash scripts/run_block.sh <block> [...]          # the real run matrix, one block per session
 ```
@@ -119,13 +119,14 @@ Then download `results/` into this repo, and if you have several sessions' CSVs,
 4. **Pretraining augmentation runs on the GPU.** RandomResizedCrop(0.2–1.0) + flip are implemented as one
    batched affine `grid_sample` (bilinear) over the uint8 dataset kept on the GPU, so a T4 isn't bottlenecked
    on Kaggle's 4 CPU cores. Fine-tuning keeps torchvision RandAugment in DataLoader workers.
-5. **Overfit test** uses a fixed mask, real images and 500 steps, and asserts a >10× loss drop.
-   Memorising per-pixel Gaussian noise plateaus at the mean, so noise is a poor test input.
+5. **Overfit test** uses a fixed mask, 64 real CIFAR images and 500 steps, and asserts a >10× loss drop
+   (it skips if CIFAR isn't on disk; the `test` block downloads it first). Noise or synthetic images
+   plateau near the mean and say nothing about wiring.
 6. **Checkpointing**: the full resumable state (`ckpt_latest.pt`) is overwritten every 25 epochs, and
    encoder-only weights are kept every 50 epochs (ep100 for the gate, ep200 for the ablation, ep400 main).
 7. **Extra files** beyond the doc's layout: `src/mae/engine.py` (training loops, shared by scripts and tests),
    `scripts/run_block.sh` (the run matrix), `smoke_test.sh`, `merge_runs.py`, `model_stats.py`,
-   `tests/test_splits.py`.
+   `tests/test_splits.py` (also checks that `--set lr=1e-3` parses as a number; plain PyYAML reads it as a string).
 
 **Reconstruction grids:** the model predicts *normalised* pixels, so to draw a masked patch, its prediction
 is rescaled with that patch's true mean and std. Brightness and colour cast in masked patches therefore come
