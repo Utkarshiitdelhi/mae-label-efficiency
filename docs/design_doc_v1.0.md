@@ -310,20 +310,20 @@ These are the questions an ML interviewer is most likely to ask about this CV en
 
 | Question | Short answer |
 | --- | --- |
-| Why 75% masking and not 15% like BERT? | Pixels are redundant; at low ratios the model fills gaps by interpolation. 75% removes whole parts, so it must model objects. My ablation measured this at 32 px: \[result\]. |
+| Why 75% masking and not 15% like BERT? | Pixels are redundant; at low ratios the model fills gaps by interpolation. 75% removes whole parts, so it must model objects. My ablation measured this at 32 px: 75% beat both 50% and 90% on every metric, e.g. linear probe at 1% labels 61.7% vs 51.9% (50%) and 56.9% (90%), and 1% fine-tuning 64.2% vs 57.2% and 57.6%. |
 | Why compute the loss only on masked patches? | Visible ones can be copied through; including them rewards copying. I have a unit test that changes visible targets and shows the loss does not move. |
 | Why doesn't the encoder see mask tokens? | Compute (16 of 64 tokens) and no train/test mismatch: at fine-tuning the encoder never sees an artificial token. |
 | Why a shallow decoder? Doesn't the paper say deeper helps linear probing? | It is discarded and narrow, so understanding must sit in the encoder. But 1 block forces the last encoder layers to specialise in pixels, so I used 4: shallow relative to 12, not minimal. |
 | How do you know the baseline wasn't just undertrained? | Same subset, augmentation, step budget, own LR sweep for each arm, and I checked the scratch val curve had plateaued. |
 | Why did you use the same 50K images for pretraining and fine-tuning? | Pretraining sees no labels and never the test set; that is the standard semi-supervised setting. |
-| What does the random-init control tell you? | A frozen random network already gets above chance from colour and patch statistics. Pretraining is credited only with the gap above it: \[result\]. |
+| What does the random-init control tell you? | A frozen random network already gets above chance from colour and patch statistics. Pretraining is credited only with the gap above it: the random-init probe gets 45.8% at 100% labels, the 400-epoch MAE-75 encoder 78.2%, so +32.4 points. |
 | Why is MAE's linear-probe accuracy lower than its fine-tuning accuracy? | MAE features are rich but not linearly organised by class; fine-tuning reshapes them. Contrastive methods probe better, MAE fine-tunes better. |
 | Why ViT instead of ResNet? | Masking is just dropping tokens in a ViT. A CNN needs dense input, so it would need mask tokens or sparse convs. |
 | Why per-patch normalised targets? | Removes brightness and contrast, so the loss focuses on structure; the paper found it improves accuracy. |
 | How many seeds, and why different counts? | 3 at 1%, 1 each at 10% and 100%. Variance is largest with few labels; with more time I would add seeds at 10%. |
 | What would you do next? | STL-10 at 96 px, decoder-depth ablation, layer-wise LR decay, longer pretraining, and a SimCLR comparison. |
 
-**Numbers to know by heart:** encoder 5.35M params, decoder 0.82M (about 15%), 64 patches of 4×4, 16 visible at 75%, 400 pretraining epochs, 500 labelled images at 1%, and your three headline test accuracies per arm.
+**Numbers to know by heart:** encoder 5.35M params, decoder 0.82M (about 15%), 64 patches of 4×4, 16 visible at 75%, 400 pretraining epochs, 500 labelled images at 1%, and your three headline test accuracies per arm: MAE 65.8 / 83.6 / 94.1% vs scratch 37.5 / 65.3 / 88.8% at 1 / 10 / 100% labels (gains +28.3 / +18.3 / +5.3).
 
 ## Milestones
 

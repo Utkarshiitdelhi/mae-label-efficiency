@@ -7,21 +7,68 @@ from-scratch baseline trained under exactly the same recipe. Design rationale:
 
 ## Result
 
-> **To be filled after the Kaggle runs** (`python scripts/make_figures.py` prints the numbers).
-> One paragraph: MAE-75 vs scratch test accuracy at 1% / 10% / 100% labels with the paired gain,
-> where MAE did **not** help, the best masking ratio by linear probe, and the gap over the
-> random-init floor.
+Pretraining a from-scratch ViT-Tiny MAE (75% masking, 400 epochs) on the 50K unlabelled CIFAR-10
+training images raises test accuracy from **37.5 ± 0.6% to 65.8 ± 1.0% with 1% labels** (500
+images; **+28.3 ± 1.3 points**, paired over 3 seeds), from **65.3% to 83.6% with 10%** (+18.3) and
+from **88.8% to 94.1% with 100%** (+5.3). The baseline is a from-scratch model with the same
+subsets, augmentation and step budget, and its own LR sweep. As hypothesised, the gain shrinks as
+labels grow. MAE never hurt, but at 100% labels its advantage is small and measured on a single
+seed. Doubling the 10% budget to 12,000 steps moved scratch only from 65.3% to 65.7% (and MAE from
+83.6% to 82.3%), so the baseline is not undertrained. In the masking-ratio ablation (200
+pretraining epochs each), **75% beats 50% and 90% on every metric**: linear probe 61.7 vs 51.9 / 56.9%
+at 1% labels and 74.9 vs 69.6 / 72.1% at 100%, and 1% fine-tuning 64.2 vs 57.2 / 57.6%. Every MAE
+encoder sits far above the random-init frozen floor (28.7% probe at 1% labels, 45.8% at 100%); the
+main 400-epoch encoder reaches 78.2%, **+32.4 points over that floor**.
+
+**Where MAE did not help, and other caveats.**
+- Longer fine-tuning did not help MAE: 12,000 steps at 10% gave 82.3% vs 83.6% at 6,000.
+- At 10% labels the 400-epoch encoder's probe (71.2%) is no better than the 200-epoch one (71.7%).
+  That comparison is one seed, with the LR picked on 500 val images.
+- 10% and 100% are single-seed, so those gains have no error bars.
+- The 75% row of the ablation is the epoch-200 checkpoint of the 400-epoch run, whose cosine LR had
+  not finished annealing. If anything, that handicaps 75%.
+- At 1% labels, validation sets are 100 images, so LR choices there are noisy.
 
 ![Label efficiency](results/figures/label_efficiency.png)
 
-| Table | File |
-| --- | --- |
-| Label efficiency (fine-tune, both arms, mean ± std, paired gain) | [`results/tables/label_efficiency.md`](results/tables/label_efficiency.md) |
-| Masking-ratio ablation (linear probe 1/10/100% + fine-tune 1%) | [`results/tables/ablation.md`](results/tables/ablation.md) |
-| Encoder vs decoder parameters and compute | [`results/tables/model_stats.md`](results/tables/model_stats.md) |
+**Label efficiency** (full fine-tuning, CIFAR-10 test accuracy %):
 
-Figures: `label_efficiency.png`, `ablation.png`, `val_curves.png` (scratch-baseline plateau check),
-`recon_m75.png` (plus `recon_m50.png`, `recon_m90.png`), all in `results/figures/`.
+| Label fraction | Labelled images | MAE-75 fine-tune | Scratch | Paired gain (pts) | LR (MAE / scratch) | Seeds |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1% | 500 | 65.8 ± 1.0 | 37.5 ± 0.6 | +28.3 ± 1.3 | 5e-4 / 5e-4 | 3 |
+| 10% | 5,000 | 83.6 | 65.3 | +18.3 | 1e-3 / 1e-3 | 1 |
+| 100% | 50,000 | 94.1 | 88.8 | +5.3 | 1e-3 / 1e-3 | 1 |
+
+![Masking-ratio ablation](results/figures/ablation.png)
+
+**Masking-ratio ablation** (test accuracy %; probe LR chosen on val per subset; fine-tune at the LR
+MAE-75 chose at 1%):
+
+| Encoder | Probe 1% | Probe 10% | Probe 100% | Fine-tune 1% |
+| --- | --- | --- | --- | --- |
+| Random init (frozen) | 28.7 ± 1.9 | 40.3 | 45.8 | - |
+| MAE-50, 200 ep | 51.9 ± 0.8 | 64.6 | 69.6 | 57.2 ± 0.8 |
+| **MAE-75, 200 ep** (epoch 200 of the 400-ep run) | **61.7 ± 0.7** | **71.7** | **74.9** | **64.2 ± 1.1** |
+| MAE-90, 200 ep | 56.9 ± 1.3 | 67.7 | 72.1 | 57.6 ± 1.1 |
+| MAE-75, 400 ep (main model) | 66.9 ± 0.1 | 71.2 | 78.2 | see table above |
+
+![MAE-75 reconstructions](results/figures/recon_m75.png)
+
+| Other evidence | File |
+| --- | --- |
+| Validation curves for both arms (is the scratch baseline plateaued?) | `results/figures/val_curves.png` |
+| Reconstruction grids for 50 / 75 / 90% masking | `results/figures/recon_m{50,75,90}.png` |
+| Every run (109: 3 pretrains, 31 fine-tunes, 75 probes) | `results/runs.csv`, per-run curves in `results/logs/` |
+| 10% longer-budget check (12,000 steps) | `results/extra/longcheck/runs.csv` |
+| Epoch-100 gate: probe at 100% labels, random 45.8% vs MAE-75@ep100 70.0% | `results/extra/gate_ep100/runs.csv` |
+| Encoder vs decoder parameters and compute | `results/tables/model_stats.md` |
+
+Pretraining loss (masked patches, normalised pixels): 1.32 at epoch 1, 0.353 at epoch 100,
+**0.321 at epoch 400** for MAE-75; 0.186 for MAE-50 and 0.529 for MAE-90 at 200 epochs. Lower is not
+better across ratios: a lower ratio is simply an easier task.
+
+Compute: MAE-75 pretraining took 71 min on one Kaggle T4 (9.2 s/epoch), and the whole run matrix
+used about 7.5 T4-hours across four Kaggle sessions.
 
 ## CV bullet → evidence
 
@@ -108,13 +155,13 @@ Then download `results/` into this repo, and if you have several sessions' CSVs,
 
 ## Deviations from design doc v1.0 (and why)
 
-1. **Ablation fine-tune adds MAE-75@200 at 1% (3 runs, ~0.1 GPU-h).** The doc's run matrix lists only
+1. **Ablation fine-tune adds MAE-75@200 at 1% (3 runs).** The doc's run matrix lists only
    MAE-50/90 there. Without the matching MAE-75 runs, the fine-tune column would compare 200-epoch
    encoders with a 400-epoch one.
-2. **Optional `pretrain_m75e200`.** The epoch-200 checkpoint of the 400-epoch run is mid-cosine (its LR
-   has not annealed), while MAE-50/90 finish their own 200-epoch schedules. That is equal epochs but not
-   an equal schedule, and it slightly favours 50/90. If you run this block, the ablation automatically
-   uses it for the 75% row; otherwise it uses `m75_ep200` and the README should say so.
+2. **`pretrain_m75e200` was not run.** The epoch-200 checkpoint of the 400-epoch run is mid-cosine
+   (its LR has not annealed), while MAE-50/90 finish their own 200-epoch schedules. So the ablation
+   compares equal epochs, not equal schedules, which slightly favours 50/90; 75% won anyway. The
+   optional block is still there if you want the fully matched row.
 3. **LR check uses 2 warm-up epochs.** With the main recipe's 20, a 20-epoch check would be pure warm-up.
 4. **Pretraining augmentation runs on the GPU.** RandomResizedCrop(0.2–1.0) + flip are implemented as one
    batched affine `grid_sample` (bilinear) over the uint8 dataset kept on the GPU, so a T4 isn't bottlenecked
@@ -124,7 +171,12 @@ Then download `results/` into this repo, and if you have several sessions' CSVs,
    plateau near the mean and say nothing about wiring.
 6. **Checkpointing**: the full resumable state (`ckpt_latest.pt`) is overwritten every 25 epochs, and
    encoder-only weights are kept every 50 epochs (ep100 for the gate, ep200 for the ablation, ep400 main).
-7. **Extra files** beyond the doc's layout: `src/mae/engine.py` (training loops, shared by scripts and tests),
+7. **Pretraining LR is 1e-3, not 3e-4.** The 20-epoch LR check (the doc's guard) gave a lower
+   reconstruction loss at 1e-3 (0.43 by epoch 12 vs 0.47 after 20 epochs at 3e-4), so every pretrain
+   ran at 1e-3, and the pretrain configs now set `lr: 1.0e-3` so a plain rerun reproduces it.
+8. **Added a 10% longer-budget check**: both arms at 12,000 instead of 6,000 steps, to answer
+   "was the baseline undertrained?" (`results/extra/longcheck/`). It is kept out of the main tables.
+9. **Extra files** beyond the doc's layout: `src/mae/engine.py` (training loops, shared by scripts and tests),
    `scripts/run_block.sh` (the run matrix), `smoke_test.sh`, `merge_runs.py`, `model_stats.py`,
    `tests/test_splits.py` (also checks that `--set lr=1e-3` parses as a number; plain PyYAML reads it as a string).
 

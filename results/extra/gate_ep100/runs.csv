@@ -1,0 +1,7 @@
+run_id,git_commit,config,kind,arm,encoder,ratio,fraction,seed,lr,best_val_acc,test_acc,final_loss,steps,wall_time_s,timestamp
+lp_random_f100_s0_lr0.001,4c8de17,probe,probe,random,random,,100,0,0.001,0.4104,0.4105,,,20.0,2026-11-23 14:10:13
+lp_random_f100_s0_lr0.01,4c8de17,probe,probe,random,random,,100,0,0.01,0.4396,0.4439,,,19.1,2026-11-23 14:10:32
+lp_random_f100_s0_lr0.1,4c8de17,probe,probe,random,random,,100,0,0.1,0.4474,0.4576,,,18.9,2026-11-23 14:10:51
+lp_m75_ep100_f100_s0_lr0.001,4c8de17,probe,probe,mae,m75_ep100,0.75,100,0,0.001,0.6932,0.6937,,,18.9,2026-11-23 14:11:18
+lp_m75_ep100_f100_s0_lr0.01,4c8de17,probe,probe,mae,m75_ep100,0.75,100,0,0.01,0.6978,0.7008,,,19.0,2026-11-23 14:11:37
+lp_m75_ep100_f100_s0_lr0.1,4c8de17,probe,probe,mae,m75_ep100,0.75,100,0,0.1,0.6982,0.6997,,,19.0,2026-11-23 14:11:56
