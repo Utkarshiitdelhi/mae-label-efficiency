@@ -171,7 +171,7 @@ def pretrain_mae(cfg, out_dir, results_dir, device, train_images=None, recon_ima
     if start_epoch < epochs:   # only log a completed run once
         log_run(results_dir, {"run_id": f"pt_{run}", "config": cfg.get("config_name", ""),
                               "kind": "pretrain", "arm": "mae", "encoder": f"{run}_ep{epochs}",
-                              "ratio": cfg["mask_ratio"], "final_loss": round(loss_val, 5),
+                              "ratio": cfg["mask_ratio"], "lr": peak, "final_loss": round(loss_val, 5),
                               "steps": step, "seed": cfg.get("seed", 0),
                               "wall_time_s": round(wall, 1)})
     return model

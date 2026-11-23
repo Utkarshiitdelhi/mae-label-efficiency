@@ -99,7 +99,7 @@ EOF
             --out "$CKPT/lrcheck_$lr" --no-resume \
             --set epochs=20 warmup_epochs=2 recon_every=20 encoder_save_every=1000 lr=$lr run_name=m75_lr$lr
       done
-      grep -h "pretrain" "$RESULTS/lrcheck/runs.csv" | cut -d, -f1,13 | sed 's/^/run,final_loss: /'
+      grep -h "pretrain" "$RESULTS/lrcheck/runs.csv" | cut -d, -f1,10,13 | sed "s/^/run,peak_lr,final_loss: /"
       echo "-> keep the LR with the lower final_loss; if 1e-3 wins, export LR_PT=1e-3 for all pretrains" ;;
     pretrain_m75)     pretrain m75 ;;
     pretrain_abl)     pretrain m50; pretrain m90 ;;
