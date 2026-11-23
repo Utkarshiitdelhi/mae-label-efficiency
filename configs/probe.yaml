@@ -1,0 +1,9 @@
+# Linear probing on cached frozen features (design doc, "Linear probing").
+lr_sweep: [1.0e-3, 1.0e-2, 1.0e-1]
+epochs: 100
+batch_size: 256
+subsets: [[1, 0], [1, 1], [1, 2], [10, 0], [100, 0]]   # [fraction %, seed]
+random_init_seed: 0
+data_root: ./data
+splits_dir: ./splits
+download: true

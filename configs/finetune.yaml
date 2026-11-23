@@ -1,0 +1,20 @@
+# Full fine-tuning, identical for the MAE and scratch arms (design doc, "Fine-tuning protocol").
+# The arms differ only in the encoder's starting weights.
+budgets:                 # set in steps, not epochs
+  1:   {batch_size: 64,  steps: 3000}     # 400 imgs  -> ~480 epochs
+  10:  {batch_size: 128, steps: 6000}     # 4500 imgs -> ~170 epochs
+  100: {batch_size: 256, steps: 17600}    # 45000 imgs -> ~100 epochs
+lr_sweep: [5.0e-4, 1.0e-3, 2.0e-3]
+weight_decay: 0.05
+betas: [0.9, 0.999]
+warmup_frac: 0.05
+drop_path: 0.1           # stochastic depth
+label_smoothing: 0.1
+amp: true
+clip_grad: null
+num_evals: 30            # val checks per run; best-val checkpoint is the one tested
+num_workers: 4
+save_model: false
+data_root: ./data
+splits_dir: ./splits
+download: true

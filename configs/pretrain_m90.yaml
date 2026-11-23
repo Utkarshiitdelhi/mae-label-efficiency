@@ -1,0 +1,23 @@
+# MAE pretraining, 90% masking. Recipe: MAE paper scaled to CIFAR-10 (design doc, "Pretraining recipe").
+run_name: m90
+mask_ratio: 0.90
+epochs: 200
+batch_size: 512
+base_lr: 1.5e-4          # peak lr = base_lr * batch / 256 = 3e-4
+lr: null                 # set an absolute peak lr to override the scaling rule (LR check)
+warmup_epochs: 20
+weight_decay: 0.05
+betas: [0.9, 0.95]
+amp: true                # fp16 autocast + GradScaler (T4 has no fast bf16)
+clip_grad: null          # set to 1.0 only if fp16 NaNs recur
+norm_pix_loss: true
+dec_dim: 128
+dec_depth: 4
+dec_heads: 4
+seed: 0
+ckpt_every: 25           # full resumable checkpoint (ckpt_latest.pt, overwritten)
+encoder_save_every: 50   # encoder-only weights kept for downstream use
+recon_every: 50
+recon_indices: [0, 1, 2, 3, 4, 5, 6, 7]   # fixed held-out test images
+data_root: ./data
+download: true

@@ -1,0 +1,10 @@
+data/
+checkpoints/
+features/
+features_gate/
+smoke/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.pt
+*.tmp
